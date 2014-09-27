@@ -1,0 +1,97 @@
+apply plugin: 'com.android.library'
+apply plugin: 'maven'
+apply plugin: 'signing'
+
+android {
+    compileSdkVersion 19
+    buildToolsVersion "20.0.0"
+
+    defaultConfig {
+        applicationId "net.cattaka.telnetsqlite"
+        minSdkVersion 4
+        targetSdkVersion 4
+        versionCode 1
+        versionName "1.0"
+    }
+    buildTypes {
+        release {
+            runProguard false
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
+}
+
+dependencies {
+    compile fileTree(dir: 'libs', include: ['*.jar'])
+    compile 'com.android.support:appcompat-v7:20.0.0'
+}
+
+group = "net.cattaka"
+archivesBaseName = "telnetsqlite"
+version = "1.0.0"
+
+gradle.taskGraph.whenReady { taskGraph ->
+    if (taskGraph.allTasks.any { it instanceof Sign }) {
+        // Use Java 6's console to read from the console (no good for
+        // a CI environment)
+        Console console = System.console()
+        console.printf "\n\nWe have to sign some things in this build." +
+                "\n\nPlease enter your signing details.\n\n"
+
+        def password = console.readPassword("PGP Private Key Password: ")
+
+        allprojects { ext."signing.password" = password }
+
+        console.printf "\nThanks.\n\n"
+    }
+}
+signing {
+    sign configurations.archives
+}
+
+def repo = new File(rootDir, "repository")
+apply plugin: 'maven'
+uploadArchives {
+    repositories {
+        mavenDeployer {
+            beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
+
+            repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
+                authentication(userName: ossrhUsername, password: ossrhPassword)
+            }
+
+            pom.project {
+                name 'TelnetSqlite'
+                packaging 'aar'
+                // optionally artifactId can be defined here
+                description 'A debugging tool for Android SQLiteDatabase. It can run sql through network.'
+                url 'https://github.com/cattaka/TelnetSqlite'
+
+                scm {
+                    connection 'scm:git:git@github.com:cattaka/TelnetSqlite.git'
+                    developerConnection 'scm:git:git@github.com:cattaka/TelnetSqlite.git'
+                    url 'https://github.com/cattaka/TelnetSqlite'
+                }
+
+                licenses {
+                    license {
+                        name 'The BSD 2-Clause License'
+                        url 'http://opensource.org/licenses/BSD-2-Clause'
+                    }
+                }
+
+                developers {
+                    developer {
+                        id 'cattaka'
+                        name 'Takao Sumitomo'
+                        email 'cattaka@mail.cattaka.net'
+                    }
+                }
+            }
+        }
+    }
+}
