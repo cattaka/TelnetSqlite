@@ -2,7 +2,7 @@ TelnetSqlite
 ============
 
 
-## Want to peek SQLiteDatabase of non-root device
+## Want to peek SQLiteDatabase of non-rooted device
 
 SQLiteDatabase of non-root device cannot be peeked in the development of Android apps. 
 In a strict sense it is not be able to be peeked for security reason.
@@ -73,5 +73,20 @@ public class MyAppliction extends Application {
 A value of 12080 when generating a serverThread is the port number of the server. 
 Please change the appropriate value if necessary. 
 It is using reflection in order to avoid a compilation error in the release build.
+
+## Using the GUI tools 
+
+You can connect with telnet it can be useful, but it is hard to see molding also because it is not. There is a SQL editor GUI called [RdbAssistant]https://github.com/cattaka/RdbAssistant/releases) was corresponding Fortunately. Order to operate as a Java application, this SQL editor will work anywhere if environment where there is a Java runtime. 
+
+* [RdbAssistant] (https://github.com/cattaka/RdbAssistant/releases) 
+
+Let's make the connection information for the first time you start. Select the TelnetSqlite types of connection, please enter it is not wrong host name, port number, and database name. 
+
+After you create the connection information, please press the Connect button to start. You will see input screen of SQL if you succeed to connect. You can just run the SQL, also browse the column name and a list of the table here. 
+
+
+## Conclusion 
+
+It is not impassable to avoid the use of SQLite database application development of Android. But just because the development is also very contents are in without peeking. Framework of Android Fortunately I can use the API a lot of standard, Chaimashou embedded by creating a small tool. You should be able to do the most if there is a ServerSocket. It was used in order to remove SQLiteDatabase this time, but this technique can also be applied to other things. However, because it is useless and is included in the release build, let's be careful not mixed.
 
 
