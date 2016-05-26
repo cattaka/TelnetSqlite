@@ -3,11 +3,11 @@ apply plugin: 'maven'
 apply plugin: 'signing'
 
 android {
-    compileSdkVersion 19
-    buildToolsVersion "20.0.0"
+    compileSdkVersion 23
+    buildToolsVersion "23.0.2"
 
     defaultConfig {
-        applicationId "net.cattaka.telnetsqlite"
+        //applicationId "net.cattaka.telnetsqlite"
         minSdkVersion 4
         targetSdkVersion 4
         versionCode 1
@@ -15,7 +15,7 @@ android {
     }
     buildTypes {
         release {
-            runProguard false
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
@@ -23,7 +23,7 @@ android {
 
 dependencies {
     compile fileTree(dir: 'libs', include: ['*.jar'])
-    compile 'com.android.support:appcompat-v7:20.0.0'
+    //compile 'com.android.support:appcompat-v7:20.0.0'
 }
 
 group = "net.cattaka"
@@ -57,11 +57,15 @@ uploadArchives {
             beforeDeployment { MavenDeployment deployment -> signing.signPom(deployment) }
 
             repository(url: "https://oss.sonatype.org/service/local/staging/deploy/maven2/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
+				if (hasProperty("ossrhUsername") && hasProperty("ossrhPassword")) { 
+                	authentication(userName: ossrhUsername, password: ossrhPassword)
+				}
             }
 
             snapshotRepository(url: "https://oss.sonatype.org/content/repositories/snapshots/") {
-                authentication(userName: ossrhUsername, password: ossrhPassword)
+				if (hasProperty("ossrhUsername") && hasProperty("ossrhPassword")) { 
+	                authentication(userName: ossrhUsername, password: ossrhPassword)
+				}
             }
 
             pom.project {
