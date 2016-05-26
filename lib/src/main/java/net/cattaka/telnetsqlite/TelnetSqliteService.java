@@ -80,7 +80,7 @@ public class TelnetSqliteService extends Service {
 
         @Override
         public void run() {
-            Log.d(TAG, "ServerSocket started.");
+            Log.d(TAG, "ServerSocket started.:port"+port);
             try {
                 this.serverSocket = new ServerSocket(port);
                 while (true) {
@@ -123,7 +123,6 @@ public class TelnetSqliteService extends Service {
             Log.d(TAG, "ClientTask started.");
             InputStreamReader reader = null;
             OutputStreamWriter writer = null;
-            SQLiteDatabase db = null;
             try {
                 reader = new InputStreamReader(socket.getInputStream());
                 writer = new OutputStreamWriter(socket.getOutputStream());
@@ -137,9 +136,7 @@ public class TelnetSqliteService extends Service {
                 writer.append('\n');
                 writer.flush();
 
-                db = SQLiteDatabase.openDatabase(databaseFile.getAbsolutePath(), null,
-                        SQLiteDatabase.OPEN_READWRITE);
-                while (db.isOpen()) {
+                while (true) {
                     writePrompt(writer);
                     String line = readLine(reader);
                     if (line.matches("\\s*")) {
@@ -151,63 +148,12 @@ public class TelnetSqliteService extends Service {
 
                     // SQLの場合
                     {
-                        String sql = line;
-                        Cursor cursor = null;
-                        try {
-                            cursor = db.rawQuery(sql, new String[0]);
-                            int rowCount = cursor.getCount();
-                            writer.append(PREFIX_SUCCESS);
-                            writer.append(String.valueOf(rowCount));
-                            writer.append('\n');
-                            writer.flush();
-
-                            int n = cursor.getColumnCount();
-                            if (n > 0) {
-                                writer.append(RESULT_HEADER);
-                                for (int i = 0; i < n; i++) {
-                                    if (i > 0) {
-                                        writer.append(SEPALATOR);
-                                    }
-                                    String val = cursor.getColumnName(i);
-                                    writer.append(escapeColumnValue(val));
-                                }
-                                writer.append('\n');
-                                writer.flush();
-                                while (cursor.moveToNext()) {
-                                    writer.append(RESULT_DATA);
-                                    for (int i = 0; i < n; i++) {
-                                        if (i > 0) {
-                                            writer.append(SEPALATOR);
-                                        }
-                                        String val = cursor.getString(i);
-                                        writer.append(escapeColumnValue(val));
-                                        // writer.append(cursor.getString(i));
-                                    }
-                                    writer.append('\n');
-                                    writer.flush();
-                                }
-                                writer.append('\n');
-                                writer.flush();
-                            } else {
-                                writer.append('\n');
-                            }
-                        } catch (SQLException e) {
-                            writeError(writer, e.getMessage());
-                        } catch (Exception e) {
-                            writeError(writer, e.getMessage());
-                        } finally {
-                            if (cursor != null) {
-                                cursor.close();
-                            }
-                        }
+                        analyze(writer, databaseFile, line);
                     }
                 }
             } catch (IOException e) {
                 Log.w(TAG, e.getMessage(), e);
             } finally {
-                if (db != null) {
-                    db.close();
-                }
                 if (reader != null) {
                     try {
                         reader.close();
@@ -234,6 +180,88 @@ public class TelnetSqliteService extends Service {
                 }
             }
             Log.d(TAG, "ClientTask finished.");
+        }
+    }
+
+    private static void analyze(OutputStreamWriter writer, File databaseFile, String line) throws IOException {
+
+        String sql = line;
+        SQLiteDatabase db = null;
+        Cursor cursor = null;
+        try {
+            db = SQLiteDatabase.openDatabase(databaseFile.getAbsolutePath(), null,
+                    SQLiteDatabase.OPEN_READWRITE);
+            if(!db.isOpen()) {
+                Log.d(TAG, "can not open " + databaseFile.getAbsolutePath());
+                return;
+            }
+
+            cursor = db.rawQuery(sql, new String[0]);
+            int rowCount = cursor.getCount();
+            writer.append(PREFIX_SUCCESS);
+            writer.append(String.valueOf(rowCount));
+            writer.append('\n');
+            writer.flush();
+
+            int n = cursor.getColumnCount();
+            if (n > 0) {
+                writer.append(RESULT_HEADER);
+                for (int i = 0; i < n; i++) {
+                    if (i > 0) {
+                        writer.append(SEPALATOR);
+                    }
+                    String val = cursor.getColumnName(i);
+                    writer.append(escapeColumnValue(val));
+                }
+                writer.append('\n');
+                writer.flush();
+                while (cursor.moveToNext()) {
+                    writer.append(RESULT_DATA);
+                    for (int i = 0; i < n; i++) {
+                        if (i > 0) {
+                            writer.append(SEPALATOR);
+                        }
+                        String val = "";
+                        int type = DbCompat.getType(cursor,i);
+                        switch(type){
+                            case DbCompat.FIELD_TYPE_BLOB:
+                                val = "[BLOB]";
+                                break;
+                            case DbCompat.FIELD_TYPE_INTEGER:
+                                val = String.valueOf(cursor.getInt(i));
+                                break;
+                            case DbCompat.FIELD_TYPE_FLOAT:
+                                val = String.valueOf(cursor.getFloat(i));
+                                break;
+                            case DbCompat.FIELD_TYPE_STRING:
+                            default:
+                                val = cursor.getString(i);
+                                break;
+
+                        }
+                        writer.append(escapeColumnValue(val));
+                        // writer.append(cursor.getString(i));
+                    }
+                    writer.append('\n');
+                    writer.flush();
+                }
+                writer.append('\n');
+                writer.flush();
+            } else {
+                writer.append('\n');
+            }
+        } catch (SQLException e) {
+            writeError(writer, e.getMessage());
+        } catch (Exception e) {
+            writeError(writer, e.getMessage());
+        } finally {
+            if (db != null) {
+                db.close();
+            }
+
+            if (cursor != null) {
+                cursor.close();
+            }
         }
     }
 
